@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA — AI Operating System</title>
+<style>
+  :root{
+    --bg-0:#05080f;
+    --bg-1:#0a0f1a;
+    --panel:rgba(18,26,42,0.55);
+    --panel-solid:#0e1420;
+    --border:rgba(120,170,255,0.14);
+    --border-strong:rgba(120,190,255,0.28);
+    --accent:#4fd7ff;
+    --accent-dim:rgba(79,215,255,0.35);
+    --accent-soft:rgba(79,215,255,0.08);
+    --text-0:#e8f1fb;
+    --text-1:#9fb0c7;
+    --text-2:#5e6f88;
+    --danger:#ff6b6b;
+    --good:#4fe0a0;
+    --warn:#ffb84f;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:8px;
+    --dur:220ms;
+    --font: 'Segoe UI', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Inter', Arial, sans-serif;
+  }
+  [data-accent="violet"]{ --accent:#b98bff; --accent-dim:rgba(185,139,255,0.35); --accent-soft:rgba(185,139,255,0.08); }
+  [data-accent="emerald"]{ --accent:#4fe0a0; --accent-dim:rgba(79,224,160,0.35); --accent-soft:rgba(79,224,160,0.08); }
+  [data-accent="amber"]{ --accent:#ffb84f; --accent-dim:rgba(255,184,79,0.35); --accent-soft:rgba(255,184,79,0.08); }
+  [data-accent="rose"]{ --accent:#ff7ea6; --accent-dim:rgba(255,126,166,0.35); --accent-soft:rgba(255,126,166,0.08); }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family:var(--font);
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(79,215,255,0.07), transparent 60%),
+      radial-gradient(1000px 500px at 100% 100%, rgba(120,90,255,0.05), transparent 60%),
+      var(--bg-0);
+    color:var(--text-0);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  .reduce-motion *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb{ background:rgba(120,170,255,0.15); border-radius:8px; }
+  ::-webkit-scrollbar-thumb:hover{ background:rgba(120,170,255,0.28); }
+  ::-webkit-scrollbar-track{ background:transparent; }
+
+  .app{
+    display:grid;
+    grid-template-columns:240px 1fr;
+    height:100vh;
+    width:100vw;
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    background:linear-gradient(180deg, rgba(10,15,26,0.9), rgba(6,9,16,0.9));
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:22px 16px;
+    backdrop-filter:blur(20px);
+  }
+  .logo{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 8px 26px 8px;
+  }
+  .logo-mark{
+    width:34px; height:34px;
+    border-radius:10px;
+    background:conic-gradient(from 180deg, var(--accent), transparent 60%, var(--accent));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 18px var(--accent-dim);
+    position:relative;
+  }
+  .logo-mark::after{
+    content:"";
+    width:14px;height:14px;border-radius:50%;
+    background:var(--bg-0);
+  }
+  .logo-text{ font-size:19px; font-weight:700; letter-spacing:0.5px; }
+  .logo-text span{ color:var(--accent); }
+
+  nav{ display:flex; flex-direction:column; gap:4px; flex:1; }
+  .nav-item{
+    display:flex; align-items:center; gap:12px;
+    padding:11px 12px;
+    border-radius:var(--radius-sm);
+    color:var(--text-1);
+    cursor:pointer;
+    font-size:14px;
+    font-weight:500;
+    border:1px solid transparent;
+    transition:background var(--dur), color var(--dur), border var(--dur), transform var(--dur);
+    user-select:none;
+  }
+  .nav-item svg{ width:18px; height:18px; flex-shrink:0; opacity:0.85; }
+  .nav-item:hover{
+    background:rgba(120,170,255,0.06);
+    color:var(--text-0);
+    transform:translateX(2px);
+  }
+  .nav-item.active{
+    background:var(--accent-soft);
+    color:var(--text-0);
+    border:1px solid var(--border-strong);
+    box-shadow: inset 0 0 20px rgba(79,215,255,0.05);
+  }
+  .nav-item.active svg{ opacity:1; stroke:var(--accent); }
+
+  .sidebar-footer{
+    border-top:1px solid var(--border);
+    padding-top:14px;
+    margin-top:10px;
+    font-size:12px;
+    color:var(--text-2);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .status-row{ display:flex; align-items:center; gap:8px; }
+  .dot{
+    width:7px; height:7px; border-radius:50%;
+    background:var(--good);
+    box-shadow:0 0 8px var(--good);
+    animation:pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.4; } }
+  .sf-time{ font-variant-numeric:tabular-nums; color:var(--text-1); font-size:13px; }
+  .sf-version{ color:var(--text-2); }
+
+  /* ---------- MAIN ---------- */
+  main{
+    padding:22px 28px;
+    overflow-y:auto;
+    height:100vh;
+  }
+  .view{ display:none; animation:fadein var(--dur) ease; }
+  .view.active{ display:block; }
+  @keyframes fadein{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+
+  .view-header{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:20px;
+  }
+  .view-title{ font-size:22px; font-weight:700; letter-spacing:0.2px; }
+  .view-sub{ color:var(--text-2); font-size:13px; margin-top:2px; }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    box-shadow:0 10px 30px rgba(0,0,0,0.35);
+    transition:border var(--dur), transform var(--dur), box-shadow var(--dur);
+  }
+  .panel:hover{ border:1px solid var(--border-strong); }
+
+  /* Home grid */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12, 1fr);
+    gap:16px;
+  }
+  .c-assistant{ grid-column:span 5; grid-row:span 2; }
+  .c-monitor{ grid-column:span 7; }
+  .c-clock{ grid-column:span 3; }
+  .c-apps{ grid-column:span 4; }
+  .c-status{ grid-column:span 5; }
+  .c-tasks{ grid-column:span 4; }
+  .c-notes{ grid-column:span 4; }
+  .c-music{ grid-column:span 4; }
+  .c-weather{ grid-column:span 4; }
+  .c-activity{ grid-column:span 12; }
+
+  @media (max-width:1500px){
+    .c-assistant{ grid-column:span 6; }
+    .c-monitor{ grid-column:span 6; }
+    .c-clock{ grid-column:span 4; }
+    .c-apps{ grid-column:span 4; }
+    .c-status{ grid-column:span 4; }
+    .c-tasks,.c-notes,.c-music,.c-weather{ grid-column:span 6; }
+  }
+
+  .card-pad{ padding:18px 20px; }
+  .card-title{
+    font-size:12px; text-transform:uppercase; letter-spacing:1.2px;
+    color:var(--text-2); font-weight:600; margin-bottom:14px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .card-title .dim{ font-weight:400; letter-spacing:0; text-transform:none; color:var(--text-2); font-size:11px; }
+
+  /* Assistant card */
+  .assistant-head{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .assistant-orb{
+    width:40px;height:40px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--accent), rgba(10,15,26,0.2) 70%);
+    box-shadow:0 0 22px var(--accent-dim);
+    flex-shrink:0;
+  }
+  .assistant-name{ font-weight:700; font-size:16px; display:flex; align-items:center; gap:8px; }
+  .assistant-hint{ color:var(--text-2); font-size:12px; }
+  .ai-badge{
+    font-size:10px; font-weight:700; letter-spacing:0.4px;
+    padding:2px 8px; border-radius:20px;
+    border:1px solid rgba(79,224,160,0.35); color:var(--good); background:rgba(79,224,160,0.1);
+  }
+  .ai-badge.demo{ border-color:rgba(255,184,79,0.4); color:var(--warn); background:rgba(255,184,79,0.1); }
+  .chat-box{
+    height:280px;
+    overflow-y:auto;
+    display:flex; flex-direction:column; gap:10px;
+    padding:6px 4px 10px 4px;
+  }
+  .msg{ max-width:82%; padding:9px 13px; border-radius:14px; font-size:13.5px; line-height:1.45; animation:fadein var(--dur) ease; white-space:pre-wrap; }
+  .msg.ai{ align-self:flex-start; background:rgba(79,215,255,0.08); border:1px solid var(--border-strong); border-bottom-left-radius:4px; }
+  .msg.user{ align-self:flex-end; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-bottom-right-radius:4px; }
+  .msg.system-note{ align-self:center; background:transparent; border:1px dashed var(--border); color:var(--text-2); font-size:11.5px; }
+  .msg.typing{ display:flex; gap:4px; align-items:center; }
+  .typing-dot{ width:5px;height:5px;border-radius:50%; background:var(--accent); animation:typingBounce 1.1s infinite; }
+  .typing-dot:nth-child(2){ animation-delay:0.15s; }
+  .typing-dot:nth-child(3){ animation-delay:0.3s; }
+  @keyframes typingBounce{ 0%,60%,100%{ transform:translateY(0); opacity:0.5; } 30%{ transform:translateY(-4px); opacity:1; } }
+
+  .chat-input-row{ display:flex; gap:8px; margin-top:10px; }
+  .chat-input-row input{
+    flex:1; background:rgba(255,255,255,0.03); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:10px 14px; color:var(--text-0); font-size:13.5px; outline:none;
+    transition:border var(--dur);
+  }
+  .chat-input-row input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .btn{
+    border:1px solid var(--border-strong); background:var(--accent-soft); color:var(--text-0);
+    border-radius:var(--radius-sm); padding:10px 16px; cursor:pointer; font-size:13px; font-weight:600;
+    transition:transform var(--dur), background var(--dur), box-shadow var(--dur);
+  }
+  .btn:hover{ background:var(--accent-dim); transform:translateY(-1px); box-shadow:0 6px 18px rgba(79,215,255,0.15); }
+  .btn:active{ transform:translateY(0px) scale(0.98); }
+  .btn.ghost{ background:transparent; }
+  .btn.danger{ border-color:rgba(255,107,107,0.4); color:var(--danger); background:rgba(255,107,107,0.06); }
+  .btn.danger:hover{ background:rgba(255,107,107,0.14); }
+  .btn.small{ padding:7px 12px; font-size:12px; }
+  .btn:disabled{ opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  .mic-btn{
+    width:40px; height:40px; flex-shrink:0; border-radius:var(--radius-sm);
+    border:1px solid var(--border-strong); background:rgba(255,255,255,0.03); color:var(--text-0);
+    font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background var(--dur), border var(--dur), transform var(--dur), box-shadow var(--dur);
+  }
+  .mic-btn:hover{ background:var(--accent-soft); transform:translateY(-1px); }
+  .mic-btn:disabled{ opacity:0.35; cursor:not-allowed; transform:none; }
+  .mic-btn.listening{
+    background:rgba(255,107,107,0.12); border-color:rgba(255,107,107,0.5); color:var(--danger);
+    animation:micPulse 1.3s ease-in-out infinite;
+  }
+  @keyframes micPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,107,107,0.35); } 50%{ box-shadow:0 0 0 8px rgba(255,107,107,0); } }
+
+  /* System monitor */
+  .meter-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+  .meter{ display:flex; flex-direction:column; gap:8px; }
+  .meter-label{ display:flex; justify-content:space-between; font-size:12px; color:var(--text-1); }
+  .meter-value{ font-weight:700; color:var(--text-0); font-variant-numeric:tabular-nums; }
+  .meter-bar{ height:6px; border-radius:6px; background:rgba(255,255,255,0.05); overflow:hidden; }
+  .meter-fill{ height:100%; border-radius:6px; background:linear-gradient(90deg, var(--accent), rgba(79,215,255,0.4)); transition:width 0.6s ease; }
+  @media (max-width:1500px){ .meter-grid{ grid-template-columns:repeat(2,1fr); } }
+
+  /* Clock */
+  .clock-time{ font-size:34px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:1px; }
+  .clock-secs{ color:var(--accent); }
+  .clock-date{ color:var(--text-1); font-size:13px; margin-top:6px; }
+  .clock-day{ color:var(--text-2); font-size:12px; margin-top:2px; }
+
+  /* Apps */
+  .apps-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .app-btn{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding:14px 8px; border-radius:var(--radius-md); border:1px solid var(--border);
+    background:rgba(255,255,255,0.02); cursor:pointer; transition:transform var(--dur), border var(--dur), background var(--dur);
+    color:var(--text-1); font-size:11.5px;
+  }
+  .app-btn:hover{ transform:translateY(-3px); border-color:var(--border-strong); background:var(--accent-soft); color:var(--text-0); }
+  .app-icon{ width:26px; height:26px; }
+
+  /* Status */
+  .status-list{ display:flex; flex-direction:column; gap:12px; }
+  .status-row-item{ display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:var(--radius-sm); background:rgba(255,255,255,0.02); border:1px solid var(--border); }
+  .status-tag{ font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; letter-spacing:0.5px; }
+  .tag-good{ color:var(--good); background:rgba(79,224,160,0.1); border:1px solid rgba(79,224,160,0.3); }
+  .tag-accent{ color:var(--accent); background:var(--accent-soft); border:1px solid var(--border-strong); }
+  .tag-warn{ color:var(--warn); background:rgba(255,184,79,0.1); border:1px solid rgba(255,184,79,0.3); }
+
+  /* Tasks */
+  .task-input-row{ display:flex; gap:8px; margin-bottom:12px; }
+  .task-input-row input{ flex:1; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; color:var(--text-0); font-size:13px; outline:none; }
+  .task-input-row input:focus{ border-color:var(--accent); }
+  .task-list{ display:flex; flex-direction:column; gap:8px; max-height:230px; overflow-y:auto; }
+  .task-item{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--radius-sm); background:rgba(255,255,255,0.02); border:1px solid var(--border); }
+  .task-item.done .task-text{ text-decoration:line-through; color:var(--text-2); }
+  .task-check{ width:16px; height:16px; border-radius:5px; border:1px solid var(--border-strong); cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .task-check.checked{ background:var(--accent); border-color:var(--accent); }
+  .task-text{ flex:1; font-size:13px; }
+  .task-del{ cursor:pointer; color:var(--text-2); font-size:15px; opacity:0.6; transition:opacity var(--dur), color var(--dur); }
+  .task-del:hover{ opacity:1; color:var(--danger); }
+  .task-counter{ color:var(--text-2); font-size:11.5px; font-weight:500; text-transform:none; letter-spacing:0; }
+  .empty-state{ color:var(--text-2); font-size:12.5px; text-align:center; padding:24px 10px; }
+
+  /* Notes */
+  .notes-list{ display:flex; flex-direction:column; gap:8px; max-height:270px; overflow-y:auto; }
+  .note-item{ padding:10px 12px; border-radius:var(--radius-sm); background:rgba(255,255,255,0.02); border:1px solid var(--border); }
+  .note-item textarea{ width:100%; background:transparent; border:none; color:var(--text-0); font-size:13px; resize:none; outline:none; font-family:inherit; line-height:1.5; }
+  .note-footer{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+  .note-time{ font-size:10.5px; color:var(--text-2); }
+
+  /* Music */
+  .music-body{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .album-art{
+    width:100%; height:100px; border-radius:var(--radius-md);
+    background:linear-gradient(135deg, rgba(79,215,255,0.18), rgba(120,90,255,0.12));
+    border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    position:relative; overflow:hidden;
+  }
+  .album-bars{ display:flex; gap:4px; align-items:flex-end; height:36px; }
+  .album-bars span{ width:5px; background:var(--accent); border-radius:3px; opacity:0.85; }
+  .music-title{ font-weight:700; font-size:14px; margin-top:4px; }
+  .music-artist{ color:var(--text-2); font-size:12px; }
+  .progress-row{ width:100%; display:flex; align-items:center; gap:8px; font-size:10.5px; color:var(--text-2); }
+  .progress-track{ flex:1; height:4px; border-radius:4px; background:rgba(255,255,255,0.06); cursor:pointer; }
+  .progress-fill{ height:100%; border-radius:4px; background:var(--accent); }
+  .music-controls{ display:flex; gap:14px; align-items:center; margin-top:4px; }
+  .ctrl-btn{ width:36px; height:36px; border-radius:50%; border:1px solid var(--border); background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-0); transition:transform var(--dur), border var(--dur); }
+  .ctrl-btn:hover{ transform:scale(1.08); border-color:var(--border-strong); }
+  .ctrl-btn.play{ width:44px; height:44px; background:var(--accent-soft); border-color:var(--border-strong); }
+  .vol-row{ display:flex; align-items:center; gap:8px; width:100%; margin-top:2px; }
+  .vol-row input[type=range]{ flex:1; }
+
+  /* Weather */
+  .weather-body{ display:flex; align-items:center; justify-content:space-between; }
+  .weather-temp{ font-size:38px; font-weight:700; }
+  .weather-desc{ color:var(--text-1); font-size:13px; margin-top:4px; }
+  .weather-loc{ color:var(--text-2); font-size:11.5px; }
+  .weather-icon{ width:56px; height:56px; }
+  .weather-meta{ display:flex; gap:14px; margin-top:14px; font-size:11.5px; color:var(--text-2); }
+
+  /* Activity */
+  .activity-list{ display:flex; flex-direction:column; gap:2px; max-height:180px; overflow-y:auto; }
+  .activity-item{ display:flex; align-items:center; gap:10px; padding:8px 4px; font-size:12.5px; color:var(--text-1); border-bottom:1px solid rgba(255,255,255,0.03); }
+  .activity-item:last-child{ border-bottom:none; }
+  .activity-dot{ width:5px; height:5px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+  .activity-time{ margin-left:auto; color:var(--text-2); font-size:11px; }
+
+  input[type=range]{
+    -webkit-appearance:none; height:4px; background:rgba(255,255,255,0.08); border-radius:4px; outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:12px; height:12px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 8px var(--accent-dim);
+  }
+
+  /* Settings page */
+  .settings-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:900px; }
+  .setting-row{ display:flex; justify-content:space-between; align-items:center; padding:16px 18px; }
+  .setting-label{ font-size:14px; font-weight:600; }
+  .setting-sub{ font-size:12px; color:var(--text-2); margin-top:2px; }
+  .swatches{ display:flex; gap:8px; }
+  .swatch{ width:26px; height:26px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:transform var(--dur), border var(--dur); }
+  .swatch:hover{ transform:scale(1.1); }
+  .swatch.selected{ border-color:#fff; }
+  .toggle{ width:42px; height:24px; border-radius:20px; background:rgba(255,255,255,0.08); border:1px solid var(--border); cursor:pointer; position:relative; transition:background var(--dur); flex-shrink:0; }
+  .toggle.on{ background:var(--accent-soft); border-color:var(--border-strong); }
+  .toggle-knob{ position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:var(--text-1); transition:transform var(--dur), background var(--dur); }
+  .toggle.on .toggle-knob{ transform:translateX(18px); background:var(--accent); }
+  .segmented{ display:flex; border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; }
+  .seg-btn{ padding:6px 14px; font-size:12px; cursor:pointer; color:var(--text-2); background:transparent; }
+  .seg-btn.active{ background:var(--accent-soft); color:var(--text-0); }
+
+  .full-card{ padding:0; }
+  .section-title-row{ padding:18px 20px 0 20px; }
+
+  /* AI config panel in settings */
+  .config-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:4px; }
+  .config-item{ background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; }
+  .config-key{ font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--text-2); margin-bottom:4px; }
+  .config-val{ font-size:13px; font-family:'Courier New', monospace; color:var(--text-0); word-break:break-all; }
+
+  /* Bring-your-own AI account */
+  .byo-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0; }
+  .byo-input, .byo-select{
+    width:100%; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:8px 10px; color:var(--text-0); font-size:13px; outline:none; font-family:inherit;
+  }
+  .byo-input:focus, .byo-select:focus{ border-color:var(--accent); }
+  .byo-select{ cursor:pointer; }
+  .byo-select option{ background:var(--panel-solid); color:var(--text-0); }
+  .memory-input-row{ display:flex; gap:8px; margin:12px 0; }
+  .memory-input-row input{ flex:1; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; color:var(--text-0); font-size:13px; outline:none; }
+  .memory-list{ display:flex; flex-direction:column; gap:8px; max-height:240px; overflow-y:auto; }
+  .memory-item{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--radius-sm); background:rgba(255,255,255,0.02); border:1px solid var(--border); font-size:13px; }
+  .memory-text{ flex:1; }
+
+  /* ---------- Assistant view: conversations layout ---------- */
+  .assistant-layout{ display:grid; grid-template-columns:250px 1fr; gap:16px; height:calc(100vh - 130px); }
+  .convo-sidebar{ display:flex; flex-direction:column; padding:14px; overflow:hidden; }
+  .convo-search{ background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px; color:var(--text-0); font-size:12.5px; outline:none; margin-bottom:10px; }
+  .convo-search:focus{ border-color:var(--accent); }
+  .convo-new-btn{ margin-bottom:12px; width:100%; text-align:center; }
+  .convo-scroll{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
+  .convo-group-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--text-2); margin-bottom:6px; padding:0 4px; }
+  .convo-item{ display:flex; align-items:center; gap:6px; padding:8px 10px; border-radius:var(--radius-sm); cursor:pointer; font-size:13px; color:var(--text-1); border:1px solid transparent; transition:background var(--dur), border var(--dur); }
+  .convo-item:hover{ background:rgba(255,255,255,0.03); }
+  .convo-item.active{ background:var(--accent-soft); border-color:var(--border-strong); color:var(--text-0); }
+  .convo-item-title{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .convo-actions{ display:none; gap:4px; }
+  .convo-item:hover .convo-actions{ display:flex; }
+  .convo-icon-btn{ font-size:12px; opacity:0.6; cursor:pointer; }
+  .convo-icon-btn:hover{ opacity:1; color:var(--accent); }
+  .convo-main{ display:flex; flex-direction:column; padding:0; overflow:hidden; }
+  .convo-main-header{ display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border); }
+  .convo-main-body{ flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:10px; }
+  .convo-main-footer{ padding:14px 20px; border-top:1px solid var(--border); }
+  .convo-title-full{ font-weight:700; font-size:15px; }
+  .clear-convo-btn{ font-size:11.5px; }
+
+  @media (max-width:900px){
+    .settings-grid{ grid-template-columns:1fr; }
+    .config-grid{ grid-template-columns:1fr; }
+    .assistant-layout{ grid-template-columns:1fr; height:auto; }
+  }
+</style>
+</head>
+<body data-accent="cyan">
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark"></div>
+      <div class="logo-text">NO<span>VA</span></div>
+    </div>
+    <nav id="nav">
+      <div class="nav-item active" data-view="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/></svg>
+        Home
+      </div>
+      <div class="nav-item" data-view="assistant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+        AI Assistant
+      </div>
+      <div class="nav-item" data-view="system">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+        System
+      </div>
+      <div class="nav-item" data-view="tasks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/><path d="m17 15 2 2 3-3"/></svg>
+        Tasks
+      </div>
+      <div class="nav-item" data-view="notes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/></svg>
+        Notes
+      </div>
+      <div class="nav-item" data-view="apps">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Apps
+      </div>
+      <div class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.04-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1.04H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"/></svg>
+        Settings
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="status-row"><span class="dot"></span> System status: <strong style="color:var(--good);">ONLINE</strong></div>
+      <div class="sf-time" id="sidebarClock">--:--:--</div>
+      <div class="sf-version">NOVA 2.0</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- HOME VIEW -->
+    <section class="view active" id="view-home">
+      <div class="view-header">
+        <div>
+          <div class="view-title" id="greeting">Good day.</div>
+          <div class="view-sub">Here is your system overview.</div>
+        </div>
+      </div>
+
+      <div class="grid">
+
+        <!-- Assistant -->
+        <div class="panel card-pad c-assistant">
+          <div class="assistant-head">
+            <div class="assistant-orb"></div>
+            <div>
+              <div class="assistant-name">NOVA <span class="ai-badge" id="aiBadgeHome">Connecting…</span></div>
+              <div class="assistant-hint">How can I help?</div>
+            </div>
+          </div>
+          <div class="chat-box" id="chatBox"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Ask NOVA anything..." autocomplete="off">
+            <button class="mic-btn" id="micBtnHome" title="Voice input">🎤</button>
+            <button class="btn" id="chatSend">Send</button>
+          </div>
+        </div>
+
+        <!-- System monitor -->
+        <div class="panel card-pad c-monitor">
+          <div class="card-title">System Monitor <span class="dim">live simulation</span></div>
+          <div class="meter-grid" id="meterGrid"></div>
+        </div>
+
+        <!-- Clock -->
+        <div class="panel card-pad c-clock">
+          <div class="card-title">Clock</div>
+          <div class="clock-time"><span id="clockHM">--:--</span>:<span class="clock-secs" id="clockS">--</span></div>
+          <div class="clock-date" id="clockDate">-</div>
+          <div class="clock-day" id="clockDay">-</div>
+        </div>
+
+        <!-- Apps -->
+        <div class="panel card-pad c-apps">
+          <div class="card-title">Quick Apps</div>
+          <div class="apps-grid" id="appsGrid"></div>
+        </div>
+
+        <!-- Status -->
+        <div class="panel card-pad c-status">
+          <div class="card-title">System Status</div>
+          <div class="status-list">
+            <div class="status-row-item"><span>NOVA CORE</span><span class="status-tag tag-good">ONLINE</span></div>
+            <div class="status-row-item"><span>Connection</span><span class="status-tag tag-accent">SECURE</span></div>
+            <div class="status-row-item"><span>AI Engine</span><span class="status-tag" id="aiEngineTag">READY</span></div>
+          </div>
+        </div>
+
+        <!-- Tasks -->
+        <div class="panel card-pad c-tasks">
+          <div class="card-title">Tasks <span class="task-counter" id="taskCounterHome">0 open</span></div>
+          <div class="task-input-row">
+            <input type="text" id="taskInputHome" placeholder="Add a task...">
+            <button class="btn small" id="taskAddHome">Add</button>
+          </div>
+          <div class="task-list" id="taskListHome"></div>
+        </div>
+
+        <!-- Notes -->
+        <div class="panel card-pad c-notes">
+          <div class="card-title">Notes <button class="btn small ghost" id="noteAddHome">+ New</button></div>
+          <div class="notes-list" id="notesListHome"></div>
+        </div>
+
+        <!-- Music -->
+        <div class="panel card-pad c-music">
+          <div class="card-title">Music</div>
+          <div class="music-body">
+            <div class="album-art"><div class="album-bars" id="albumBars"></div></div>
+            <div style="text-align:center;">
+              <div class="music-title" id="musicTitle">Wavelength</div>
+              <div class="music-artist" id="musicArtist">Synth Horizon</div>
+            </div>
+            <div class="progress-row">
+              <span id="musicElapsed">0:00</span>
+              <div class="progress-track" id="progressTrack"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+              <span id="musicDuration">3:24</span>
+            </div>
+            <div class="music-controls">
+              <div class="ctrl-btn" id="musicPrev">⏮</div>
+              <div class="ctrl-btn play" id="musicPlay">▶</div>
+              <div class="ctrl-btn" id="musicNext">⏭</div>
+            </div>
+            <div class="vol-row">
+              <span style="font-size:13px;">🔉</span>
+              <input type="range" id="musicVolume" min="0" max="100" value="70">
+            </div>
+          </div>
+        </div>
+
+        <!-- Weather -->
+        <div class="panel card-pad c-weather">
+          <div class="card-title">Weather <span class="dim">simulated</span></div>
+          <div class="weather-body">
+            <div>
+              <div class="weather-temp" id="weatherTemp">21°</div>
+              <div class="weather-desc" id="weatherDesc">Partly Cloudy</div>
+              <div class="weather-loc">Local Area</div>
+            </div>
+            <div class="weather-icon" id="weatherIcon">⛅</div>
+          </div>
+          <div class="weather-meta">
+            <span id="weatherHumidity">Humidity 54%</span>
+            <span id="weatherWind">Wind 12 km/h</span>
+          </div>
+        </div>
+
+        <!-- Activity -->
+        <div class="panel card-pad c-activity">
+          <div class="card-title">Recent Activity</div>
+          <div class="activity-list" id="activityList"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ASSISTANT VIEW -->
+    <section class="view" id="view-assistant">
+      <div class="view-header">
+        <div>
+          <div class="view-title">AI Assistant <span class="ai-badge" id="aiBadgeFull">Connecting…</span></div>
+          <div class="view-sub">Conversational, remembers context, can act on your tasks and notes.</div>
+        </div>
+      </div>
+
+      <div class="assistant-layout">
+
+        <!-- Conversations sidebar -->
+        <div class="panel convo-sidebar">
+          <input type="text" class="convo-search" id="convoSearch" placeholder="Search conversations...">
+          <button class="btn small convo-new-btn" id="newConvoBtn">+ New conversation</button>
+          <div class="convo-scroll" id="convoScroll"></div>
+        </div>
+
+        <!-- Main chat -->
+        <div class="panel convo-main">
+          <div class="convo-main-header">
+            <div class="convo-title-full" id="convoTitleFull">New conversation</div>
+            <button class="btn ghost small clear-convo-btn" id="clearConvoBtn">Clear conversation</button>
+          </div>
+          <div class="convo-main-body" id="chatBoxFull"></div>
+          <div class="convo-main-footer">
+            <div class="chat-input-row" style="margin-top:0;">
+              <input type="text" id="chatInputFull" placeholder="Message NOVA..." autocomplete="off">
+              <button class="mic-btn" id="micBtnFull" title="Voice input">🎤</button>
+              <button class="btn" id="chatSendFull">Send</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SYSTEM VIEW -->
+    <section class="view" id="view-system">
+      <div class="view-header">
+        <div>
+          <div class="view-title">System</div>
+          <div class="view-sub">Simulated hardware telemetry, updated live.</div>
+        </div>
+      </div>
+      <div class="panel card-pad" style="margin-bottom:16px;">
+        <div class="card-title">Resource Usage <span class="dim">live simulation</span></div>
+        <div class="meter-grid" id="meterGridSystem" style="grid-template-columns:repeat(5,1fr);"></div>
+      </div>
+      <div class="panel card-pad">
+        <div class="card-title">Status</div>
+        <div class="status-list">
+          <div class="status-row-item"><span>NOVA CORE</span><span class="status-tag tag-good">ONLINE</span></div>
+          <div class="status-row-item"><span>Connection</span><span class="status-tag tag-accent">SECURE</span></div>
+          <div class="status-row-item"><span>AI Engine</span><span class="status-tag" id="aiEngineTagSystem">READY</span></div>
+          <div class="status-row-item"><span>Uptime</span><span class="status-tag tag-accent" id="uptimeTag">00:00:00</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TASKS VIEW -->
+    <section class="view" id="view-tasks">
+      <div class="view-header">
+        <div>
+          <div class="view-title">Tasks</div>
+          <div class="view-sub" id="taskCounterFull">0 tasks</div>
+        </div>
+      </div>
+      <div class="panel card-pad" style="max-width:700px;">
+        <div class="task-input-row">
+          <input type="text" id="taskInputFull" placeholder="Add a task...">
+          <button class="btn small" id="taskAddFull">Add</button>
+        </div>
+        <div class="task-list" id="taskListFull" style="max-height:none;"></div>
+      </div>
+    </section>
+
+    <!-- NOTES VIEW -->
+    <section class="view" id="view-notes">
+      <div class="view-header">
+        <div>
+          <div class="view-title">Notes</div>
+          <div class="view-sub">Autosaved locally in your browser.</div>
+        </div>
+        <button class="btn" id="noteAddFull">+ New Note</button>
+      </div>
+      <div class="notes-list" id="notesListFull" style="max-height:none; display:grid; grid-template-columns:repeat(3,1fr); gap:12px;"></div>
+    </section>
+
+    <!-- APPS VIEW -->
+    <section class="view" id="view-apps">
+      <div class="view-header">
+        <div>
+          <div class="view-title">Apps</div>
+          <div class="view-sub">Launch external sites or open settings.</div>
+        </div>
+      </div>
+      <div class="panel card-pad" style="max-width:700px;">
+        <div class="apps-grid" id="appsGridFull" style="grid-template-columns:repeat(4,1fr);"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS VIEW -->
+    <section class="view" id="view-settings">
+      <div class="view-header">
+        <div>
+          <div class="view-title">Settings</div>
+          <div class="view-sub">Personalize NOVA. Saved automatically.</div>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <div class="panel setting-row" style="grid-column:1/-1;">
+          <div>
+            <div class="setting-label">Accent Color</div>
+            <div class="setting-sub">Choose the interface's signature glow</div>
+          </div>
+          <div class="swatches" id="accentSwatches"></div>
+        </div>
+        <div class="panel setting-row">
+          <div>
+            <div class="setting-label">Clock Format</div>
+            <div class="setting-sub">12-hour or 24-hour time</div>
+          </div>
+          <div class="segmented" id="clockFormatSeg">
+            <div class="seg-btn" data-val="12">12h</div>
+            <div class="seg-btn" data-val="24">24h</div>
+          </div>
+        </div>
+        <div class="panel setting-row">
+          <div>
+            <div class="setting-label">Animations</div>
+            <div class="setting-sub">Enable interface motion effects</div>
+          </div>
+          <div class="toggle" id="animToggle"><div class="toggle-knob"></div></div>
+        </div>
+        <div class="panel setting-row">
+          <div>
+            <div class="setting-label">Sound</div>
+            <div class="setting-sub">Play subtle interaction sounds</div>
+          </div>
+          <div class="toggle" id="soundToggle"><div class="toggle-knob"></div></div>
+        </div>
+        <div class="panel setting-row">
+          <div>
+            <div class="setting-label">Concise replies</div>
+            <div class="setting-sub">Ask NOVA to keep answers short by default</div>
+          </div>
+          <div class="toggle" id="conciseToggle"><div class="toggle-knob"></div></div>
+        </div>
+        <div class="panel setting-row">
+          <div>
+            <div class="setting-label">Voice input</div>
+            <div class="setting-sub" id="voiceSupportNote">Tap the mic next to chat to speak to NOVA</div>
+          </div>
+          <div class="status-tag tag-accent" id="voiceSupportTag">CHECKING</div>
+        </div>
+        <div class="panel setting-row">
+          <div>
+            <div class="setting-label">Speak replies aloud</div>
+            <div class="setting-sub">NOVA reads its responses out loud using your browser's voice</div>
+          </div>
+          <div class="toggle" id="voiceRepliesToggle"><div class="toggle-knob"></div></div>
+        </div>
+
+        <!-- AI configuration -->
+        <div class="panel card-pad" style="grid-column:1/-1;">
+          <div class="card-title">AI Configuration</div>
+          <div class="config-grid">
+            <div class="config-item"><div class="config-key">AI_PROVIDER</div><div class="config-val" id="cfgProvider">anthropic</div></div>
+            <div class="config-item"><div class="config-key">AI_MODEL</div><div class="config-val" id="cfgModel">claude-sonnet-4-6</div></div>
+            <div class="config-item"><div class="config-key">API_ENDPOINT</div><div class="config-val" id="cfgEndpoint">/v1/messages</div></div>
+          </div>
+          <div class="setting-row" style="padding-left:0; padding-right:0;">
+            <div>
+              <div class="setting-label">Force demo mode</div>
+              <div class="setting-sub">Disable live AI calls and use the local rule-based engine instead</div>
+            </div>
+            <div class="toggle" id="demoModeToggle"><div class="toggle-knob"></div></div>
+          </div>
+        </div>
+
+        <!-- Bring your own AI account -->
+        <div class="panel card-pad" style="grid-column:1/-1;">
+          <div class="card-title">Your AI Account <span class="dim">optional — bring your own API key</span></div>
+          <div class="setting-sub" style="margin-bottom:4px;">
+            Connect your own OpenAI or Anthropic account so NOVA answers using that account's model and quota instead of the built-in connection. Your key is stored only in this browser's local storage and is sent directly from your browser to the provider you choose — never through any server of ours.
+          </div>
+          <div class="setting-sub" style="margin-bottom:4px;">
+            Note: some providers restrict direct browser requests (CORS). If your account won't connect, that's the provider blocking browser access, not a bug here.
+          </div>
+          <div class="byo-grid">
+            <div class="config-item" style="grid-column:1/-1;">
+              <div class="config-key">Provider</div>
+              <select id="byoProvider" class="byo-select">
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="openai">OpenAI (ChatGPT)</option>
+                <option value="custom">Custom (OpenAI-compatible)</option>
+              </select>
+            </div>
+            <div class="config-item">
+              <div class="config-key">API Key</div>
+              <div style="display:flex; gap:6px;">
+                <input type="password" id="byoApiKey" class="byo-input" placeholder="sk-...">
+                <button class="btn small ghost" id="byoToggleShow" type="button">Show</button>
+              </div>
+            </div>
+            <div class="config-item">
+              <div class="config-key">Model</div>
+              <input type="text" id="byoModel" class="byo-input" placeholder="e.g. claude-3-5-sonnet-latest">
+            </div>
+            <div class="config-item" style="grid-column:1/-1;">
+              <div class="config-key">API Endpoint</div>
+              <input type="text" id="byoEndpoint" class="byo-input" placeholder="https://api.anthropic.com/v1/messages">
+            </div>
+          </div>
+          <div class="setting-row" style="padding-left:0; padding-right:0;">
+            <div>
+              <div class="setting-label">Use my account</div>
+              <div class="setting-sub" id="byoStatusNote">Off — NOVA is using the built-in demo/Anthropic connection</div>
+            </div>
+            <div class="toggle" id="byoEnableToggle"><div class="toggle-knob"></div></div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn small" id="byoSaveBtn">Save</button>
+            <button class="btn danger small" id="byoClearBtn">Clear key</button>
+          </div>
+        </div>
+
+        <!-- Memory manager -->
+        <div class="panel card-pad" style="grid-column:1/-1;">
+          <div class="card-title">Memory</div>
+          <div class="setting-row" style="padding-left:0; padding-right:0; border-bottom:1px solid var(--border); margin-bottom:6px;">
+            <div>
+              <div class="setting-label">Automatic memory</div>
+              <div class="setting-sub">Let NOVA save useful facts on its own, not just when asked</div>
+            </div>
+            <div class="toggle" id="autoMemoryToggle"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="memory-input-row">
+            <input type="text" id="memoryInput" placeholder="e.g. My Minecraft server is called NOVA">
+            <button class="btn small" id="memoryAddBtn">Add</button>
+          </div>
+          <div class="memory-list" id="memoryList"></div>
+          <div style="margin-top:12px;">
+            <button class="btn danger small" id="memoryClearBtn">Clear all memories</button>
+          </div>
+        </div>
+
+        <div class="panel setting-row" style="grid-column:1/-1;">
+          <div>
+            <div class="setting-label">Reset Data</div>
+            <div class="setting-sub">Clear tasks, notes, conversations, memory and preferences</div>
+          </div>
+          <button class="btn danger small" id="resetDataBtn">Reset</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* =========================================================
+   NOVA — Local AI Operating System Dashboard
+   Now with a real AI service layer, conversation memory,
+   long-term memory and a local tool/action execution system.
+   ========================================================= */
+
+/* =========================================================
+   1. AI CONFIGURATION
+   These constants describe which AI backend NOVA talks to.
+   No API keys ever live in this file. This build calls the
+   Anthropic Messages API directly, which this hosting
+   environment proxies without requiring a client-side key.
+   If that call fails for any reason (offline, blocked,
+   provider unavailable), NOVA transparently falls back to
+   a local rule-based "demo mode" engine — it never pretends
+   the real model answered when it didn't.
+   ========================================================= */
+const AI_CONFIG = {
+  AI_PROVIDER: 'anthropic',
+  AI_MODEL: 'claude-sonnet-4-6',
+  API_ENDPOINT: 'https://api.anthropic.com/v1/messages',
+};
+
+/* ---------- Storage ---------- */
+const STORE_KEY = 'nova_state_v2';
+
+function defaultState(){
+  return {
+    tasks: [],
+    notes: [],
+    conversations: [],
+    activeConversationId: null,
+    memories: [],
+    settings: {
+      accent:'cyan',
+      clockFormat:'24',
+      animations:true,
+      sound:true,
+      concise:false,
+      aiMode:'auto',       // 'auto' = try real AI first, 'demo' = force local engine
+      autoMemory:false,
+      voiceReplies:false,
+      customAI: { enabled:false, provider:'anthropic', apiKey:'', model:'', endpoint:'' },
+    },
+  };
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const base = defaultState();
+      return {
+        ...base, ...parsed,
+        settings: { ...base.settings, ...(parsed.settings||{}) },
+      };
+    }
+  }catch(e){ console.warn('NOVA: could not parse saved state', e); }
+  return defaultState();
+}
+function saveState(){
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+}
+let state = loadState();
+
+/* ---------- Apply settings on load ---------- */
+function applySettings(){
+  document.body.setAttribute('data-accent', state.settings.accent);
+  document.body.classList.toggle('reduce-motion', !state.settings.animations);
+}
+applySettings();
+
+/* ---------- Navigation ---------- */
+const navItems = document.querySelectorAll('.nav-item');
+const views = document.querySelectorAll('.view');
+navItems.forEach(item=>{
+  item.addEventListener('click', ()=>{
+    navItems.forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+    const target = item.dataset.view;
+    views.forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+target).classList.add('active');
+  });
+});
+function goToView(name){
+  navItems.forEach(n=>n.classList.toggle('active', n.dataset.view===name));
+  views.forEach(v=>v.classList.toggle('active', v.id==='view-'+name));
+}
+
+/* ---------- Clock ---------- */
+function pad(n){ return n.toString().padStart(2,'0'); }
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function updateClock(){
+  const now = new Date();
+  let h = now.getHours();
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  let suffix = '';
+  if(state.settings.clockFormat === '12'){
+    suffix = h >= 12 ? ' PM' : ' AM';
+    h = h % 12; if(h===0) h = 12;
+  }
+  const hmStr = `${pad(h)}:${pad(m)}${suffix}`;
+  document.getElementById('clockHM').textContent = hmStr;
+  document.getElementById('clockS').textContent = pad(s);
+  document.getElementById('sidebarClock').textContent = `${pad(now.getHours())}:${pad(m)}:${pad(s)}`;
+  document.getElementById('clockDate').textContent = `${MONTHS[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  document.getElementById('clockDay').textContent = DAYS[now.getDay()];
+
+  const hr = now.getHours();
+  let greet = 'Good evening.';
+  if(hr < 12) greet = 'Good morning.';
+  else if(hr < 18) greet = 'Good afternoon.';
+  document.getElementById('greeting').textContent = greet;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ---------- Uptime ---------- */
+const bootTime = Date.now();
+function updateUptime(){
+  const diff = Math.floor((Date.now() - bootTime)/1000);
+  const h = pad(Math.floor(diff/3600));
+  const m = pad(Math.floor((diff%3600)/60));
+  const s = pad(diff%60);
+  const el = document.getElementById('uptimeTag');
+  if(el) el.textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateUptime, 1000);
+
+/* ---------- System monitor simulation ---------- */
+const METRICS = [
+  { key:'cpu', label:'CPU', base:32, variance:18 },
+  { key:'gpu', label:'GPU', base:24, variance:22 },
+  { key:'ram', label:'RAM', base:48, variance:12 },
+  { key:'storage', label:'Storage', base:61, variance:3 },
+  { key:'network', label:'Network', base:20, variance:35 },
+];
+let metricValues = {};
+METRICS.forEach(m=> metricValues[m.key] = m.base);
+
+function renderMeterGrid(containerId){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  container.innerHTML = METRICS.map(m => `
+    <div class="meter">
+      <div class="meter-label"><span>${m.label}</span><span class="meter-value" id="${containerId}-${m.key}-val">${metricValues[m.key]}%</span></div>
+      <div class="meter-bar"><div class="meter-fill" id="${containerId}-${m.key}-bar" style="width:${metricValues[m.key]}%"></div></div>
+    </div>
+  `).join('');
+}
+renderMeterGrid('meterGrid');
+renderMeterGrid('meterGridSystem');
+
+function stepMetrics(){
+  METRICS.forEach(m=>{
+    const drift = (Math.random()-0.5) * m.variance * 0.3;
+    let next = metricValues[m.key] + drift;
+    next += (m.base - next) * 0.05;
+    next = Math.max(4, Math.min(97, next));
+    metricValues[m.key] = Math.round(next);
+    ['meterGrid','meterGridSystem'].forEach(containerId=>{
+      const valEl = document.getElementById(`${containerId}-${m.key}-val`);
+      const barEl = document.getElementById(`${containerId}-${m.key}-bar`);
+      if(valEl) valEl.textContent = metricValues[m.key] + '%';
+      if(barEl) barEl.style.width = metricValues[m.key] + '%';
+    });
+  });
+}
+setInterval(stepMetrics, 1800);
+
+/* ---------- Activity feed ---------- */
+function logActivity(text){
+  const list = document.getElementById('activityList');
+  const now = new Date();
+  const item = document.createElement('div');
+  item.className = 'activity-item';
+  item.innerHTML = `<span class="activity-dot"></span><span>${escapeHtml(text)}</span><span class="activity-time">${pad(now.getHours())}:${pad(now.getMinutes())}</span>`;
+  list.prepend(item);
+  while(list.children.length > 30) list.removeChild(list.lastChild);
+}
+
+/* ---------- Quick apps ---------- */
+const APPS = [
+  { name:'Chrome', url:'https://www.google.com/chrome/', icon:'🌐' },
+  { name:'Discord', url:'https://discord.com/app', icon:'🎮' },
+  { name:'Spotify', url:'https://open.spotify.com', icon:'🎵' },
+  { name:'Minecraft', url:'https://www.minecraft.net', icon:'⛏️' },
+  { name:'YouTube', url:'https://www.youtube.com', icon:'▶️' },
+  { name:'Google', url:'https://www.google.com', icon:'🔎' },
+  { name:'Settings', url:null, icon:'⚙️' },
+];
+function renderApps(containerId){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  container.innerHTML = APPS.map((a,i)=>`
+    <div class="app-btn" data-app-index="${i}">
+      <span class="app-icon">${a.icon}</span>
+      <span>${a.name}</span>
+    </div>
+  `).join('');
+  container.querySelectorAll('.app-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const app = APPS[+btn.dataset.appIndex];
+      openApp(app);
+    });
+  });
+}
+function openApp(app){
+  if(app.name === 'Settings'){
+    goToView('settings');
+    logActivity('Opened Settings');
+    return;
+  }
+  window.open(app.url, '_blank', 'noopener');
+  logActivity(`Application opened: ${app.name}`);
+}
+function findApp(nameFragment){
+  if(!nameFragment) return null;
+  const q = nameFragment.toLowerCase().trim();
+  return APPS.find(a => a.name.toLowerCase() === q) ||
+         APPS.find(a => a.name.toLowerCase().includes(q) || q.includes(a.name.toLowerCase()));
+}
+renderApps('appsGrid');
+renderApps('appsGridFull');
+
+/* ---------- Utility ---------- */
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str==null ? '' : String(str);
+  return div.innerHTML;
+}
+
+/* ---------- Tasks ---------- */
+function renderTasks(){
+  const openCount = state.tasks.filter(t=>!t.done).length;
+  document.getElementById('taskCounterHome').textContent = `${openCount} open`;
+  document.getElementById('taskCounterFull').textContent = `${state.tasks.length} tasks · ${openCount} open`;
+
+  ['taskListHome','taskListFull'].forEach(containerId=>{
+    const container = document.getElementById(containerId);
+    if(!container) return;
+    if(state.tasks.length === 0){
+      container.innerHTML = `<div class="empty-state">No tasks yet. Add one above, or ask NOVA to create one for you.</div>`;
+      return;
+    }
+    container.innerHTML = state.tasks.map(t => `
+      <div class="task-item ${t.done?'done':''}" data-id="${t.id}">
+        <div class="task-check ${t.done?'checked':''}" data-action="toggle" data-id="${t.id}">${t.done ? '✓' : ''}</div>
+        <div class="task-text">${escapeHtml(t.text)}</div>
+        <div class="task-del" data-action="delete" data-id="${t.id}">✕</div>
+      </div>
+    `).join('');
+  });
+
+  document.querySelectorAll('[data-action="toggle"]').forEach(el=>{
+    el.addEventListener('click', ()=> toggleTask(el.dataset.id));
+  });
+  document.querySelectorAll('[data-action="delete"]').forEach(el=>{
+    el.addEventListener('click', ()=> deleteTaskById(el.dataset.id));
+  });
+}
+function addTask(text){
+  if(!text || !text.trim()) return null;
+  const task = { id: uid(), text: text.trim(), done:false, created: Date.now() };
+  state.tasks.push(task);
+  saveState();
+  renderTasks();
+  logActivity('Task created');
+  return task;
+}
+function toggleTask(id){
+  const t = state.tasks.find(t=>t.id===id);
+  if(t){ t.done = !t.done; saveState(); renderTasks(); }
+}
+function deleteTaskById(id){
+  state.tasks = state.tasks.filter(t=>t.id!==id);
+  saveState();
+  renderTasks();
+}
+function findTaskByText(text){
+  if(!text) return null;
+  const q = text.toLowerCase().trim();
+  return state.tasks.find(t=>t.text.toLowerCase()===q) ||
+         state.tasks.find(t=>t.text.toLowerCase().includes(q) || q.includes(t.text.toLowerCase()));
+}
+document.getElementById('taskAddHome').addEventListener('click', ()=>{
+  const input = document.getElementById('taskInputHome');
+  addTask(input.value); input.value='';
+});
+document.getElementById('taskInputHome').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ addTask(e.target.value); e.target.value=''; }
+});
+document.getElementById('taskAddFull').addEventListener('click', ()=>{
+  const input = document.getElementById('taskInputFull');
+  addTask(input.value); input.value='';
+});
+document.getElementById('taskInputFull').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ addTask(e.target.value); e.target.value=''; }
+});
+
+/* ---------- Notes ---------- */
+function renderNotes(){
+  ['notesListHome','notesListFull'].forEach(containerId=>{
+    const container = document.getElementById(containerId);
+    if(!container) return;
+    if(state.notes.length === 0){
+      container.innerHTML = `<div class="empty-state">No notes yet. Click "+ New" to create one, or ask NOVA.</div>`;
+      return;
+    }
+    container.innerHTML = state.notes.map(n => `
+      <div class="note-item" data-id="${n.id}">
+        <textarea rows="3" data-action="edit" data-id="${n.id}" placeholder="Write a note...">${escapeHtml(n.text)}</textarea>
+        <div class="note-footer">
+          <span class="note-time">${new Date(n.updated).toLocaleString()}</span>
+          <span class="task-del" data-action="deleteNote" data-id="${n.id}">✕</span>
+        </div>
+      </div>
+    `).join('');
+  });
+  document.querySelectorAll('[data-action="edit"]').forEach(el=>{
+    el.addEventListener('input', e=>{
+      const n = state.notes.find(n=>n.id===el.dataset.id);
+      if(n){ n.text = e.target.value; n.updated = Date.now(); saveState(); }
+    });
+    el.addEventListener('blur', ()=>{ renderNotes(); logActivity('Note updated'); });
+  });
+  document.querySelectorAll('[data-action="deleteNote"]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.notes = state.notes.filter(n=>n.id!==el.dataset.id);
+      saveState(); renderNotes();
+    });
+  });
+}
+function addNoteWithText(text){
+  const note = { id: uid(), text: text || '', updated: Date.now() };
+  state.notes.unshift(note);
+  saveState();
+  renderNotes();
+  logActivity('Note created');
+  return note;
+}
+function findNoteByText(text){
+  if(!text) return null;
+  const q = text.toLowerCase().trim();
+  return state.notes.find(n=>n.text.toLowerCase().includes(q));
+}
+function deleteNoteById(id){
+  state.notes = state.notes.filter(n=>n.id!==id);
+  saveState(); renderNotes();
+}
+document.getElementById('noteAddHome').addEventListener('click', ()=> addNoteWithText(''));
+document.getElementById('noteAddFull').addEventListener('click', ()=> addNoteWithText(''));
+
+/* ---------- Music (simulated playback) ---------- */
+const PLAYLIST = [
+  { title:'Wavelength', artist:'Synth Horizon', duration:204 },
+  { title:'Neon Drift', artist:'Cascade Loop', duration:187 },
+  { title:'Glass Orbit', artist:'Nova Static', duration:231 },
+  { title:'Midnight Circuit', artist:'Echo Field', duration:198 },
+];
+let musicIndex = 0;
+let musicPlaying = false;
+let musicElapsed = 0;
+let musicTimer = null;
+
+function formatTime(sec){
+  const m = Math.floor(sec/60);
+  const s = Math.floor(sec%60);
+  return `${m}:${pad(s)}`;
+}
+function renderMusic(){
+  const track = PLAYLIST[musicIndex];
+  document.getElementById('musicTitle').textContent = track.title;
+  document.getElementById('musicArtist').textContent = track.artist;
+  document.getElementById('musicDuration').textContent = formatTime(track.duration);
+  document.getElementById('musicElapsed').textContent = formatTime(musicElapsed);
+  document.getElementById('progressFill').style.width = `${(musicElapsed/track.duration)*100}%`;
+  document.getElementById('musicPlay').textContent = musicPlaying ? '⏸' : '▶';
+}
+function buildAlbumBars(){
+  const wrap = document.getElementById('albumBars');
+  wrap.innerHTML = '';
+  for(let i=0;i<14;i++){
+    const bar = document.createElement('span');
+    bar.style.height = '8px';
+    wrap.appendChild(bar);
+  }
+}
+buildAlbumBars();
+function animateBars(){
+  const bars = document.querySelectorAll('#albumBars span');
+  bars.forEach(b=>{
+    const h = musicPlaying ? (6 + Math.random()*30) : 6;
+    b.style.height = h+'px';
+    b.style.transition = 'height 0.25s ease';
+  });
+}
+setInterval(animateBars, 260);
+
+function tickMusic(){
+  const track = PLAYLIST[musicIndex];
+  musicElapsed += 1;
+  if(musicElapsed >= track.duration){
+    nextTrack();
+    return;
+  }
+  renderMusic();
+}
+function playMusic(){
+  musicPlaying = true;
+  renderMusic();
+  if(musicTimer) clearInterval(musicTimer);
+  musicTimer = setInterval(tickMusic, 1000);
+}
+function pauseMusic(){
+  musicPlaying = false;
+  renderMusic();
+  if(musicTimer) clearInterval(musicTimer);
+}
+function nextTrack(){
+  musicIndex = (musicIndex+1) % PLAYLIST.length;
+  musicElapsed = 0;
+  renderMusic();
+}
+function prevTrack(){
+  musicIndex = (musicIndex-1+PLAYLIST.length) % PLAYLIST.length;
+  musicElapsed = 0;
+  renderMusic();
+}
+document.getElementById('musicPlay').addEventListener('click', ()=> musicPlaying ? pauseMusic() : playMusic());
+document.getElementById('musicNext').addEventListener('click', nextTrack);
+document.getElementById('musicPrev').addEventListener('click', prevTrack);
+document.getElementById('progressTrack').addEventListener('click', e=>{
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  musicElapsed = Math.round(PLAYLIST[musicIndex].duration * pct);
+  renderMusic();
+});
+renderMusic();
+
+/* ---------- Weather (simulated, structured for future API swap) ---------- */
+/*
+  To connect a real weather API later:
+  1. Replace fetchSimulatedWeather() with a fetch() call to your chosen provider.
+  2. Keep the same return shape: { temp, desc, icon, humidity, wind }.
+  3. Call renderWeather(data) with the result.
+  get_weather() below reads from this same source so the AI and the UI never disagree.
+*/
+const WEATHER_STATES = [
+  { temp:21, desc:'Partly Cloudy', icon:'⛅', humidity:54, wind:12 },
+  { temp:26, desc:'Clear Skies', icon:'☀️', humidity:38, wind:8 },
+  { temp:15, desc:'Light Rain', icon:'🌦️', humidity:78, wind:19 },
+  { temp:9,  desc:'Overcast', icon:'☁️', humidity:65, wind:22 },
+];
+let currentWeather = WEATHER_STATES[0];
+function fetchSimulatedWeather(){
+  return WEATHER_STATES[Math.floor(Math.random()*WEATHER_STATES.length)];
+}
+function renderWeather(data){
+  currentWeather = data;
+  document.getElementById('weatherTemp').textContent = `${data.temp}°`;
+  document.getElementById('weatherDesc').textContent = data.desc;
+  document.getElementById('weatherIcon').textContent = data.icon;
+  document.getElementById('weatherHumidity').textContent = `Humidity ${data.humidity}%`;
+  document.getElementById('weatherWind').textContent = `Wind ${data.wind} km/h`;
+}
+renderWeather(fetchSimulatedWeather());
+setInterval(()=> renderWeather(fetchSimulatedWeather()), 45000);
+
+/* =========================================================
+   2. TOOL / FUNCTION LAYER
+   These are the only actions NOVA is able to take. The AI
+   never touches state directly — it can only request one of
+   these via the ACTION protocol, and every call below is
+   real: it reads or writes actual app state. Nothing here
+   is faked.
+   ========================================================= */
+const tools = {
+  get_time(){ const n=new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`; },
+  get_date(){ const n=new Date(); return `${DAYS[n.getDay()]}, ${MONTHS[n.getMonth()]} ${n.getDate()}, ${n.getFullYear()}`; },
+  get_weather(){ return `${currentWeather.desc}, ${currentWeather.temp}°C, humidity ${currentWeather.humidity}%, wind ${currentWeather.wind} km/h (simulated — no live weather API connected)`; },
+  get_system_stats(){ return `CPU ${metricValues.cpu}%, GPU ${metricValues.gpu}%, RAM ${metricValues.ram}%, Storage ${metricValues.storage}%, Network ${metricValues.network}%`; },
+  list_tasks(){ return state.tasks.length ? state.tasks.map(t=>`${t.done?'[done]':'[open]'} ${t.text}`).join('; ') : 'no tasks'; },
+  read_notes(){ return state.notes.length ? state.notes.slice(0,8).map(n=>`"${(n.text||'(empty)').slice(0,60)}"`).join(' | ') : 'no notes'; },
+  search_web(){ return null; }, // Not available in this build — NOVA is instructed to say so rather than pretend.
+};
+
+/* Executes a single ACTION requested by the AI (or the demo engine).
+   Returns { success, label, message } — message is used verbatim
+   if the action failed, so NOVA never claims a false success. */
+function executeAction(name, arg){
+  arg = (arg||'').trim();
+  switch(name){
+    case 'create_task': {
+      if(!arg) return { success:false, message:"I need a task description to add — could you tell me what to call it?" };
+      addTask(arg);
+      return { success:true, label:'Task added' };
+    }
+    case 'complete_task': {
+      const t = findTaskByText(arg);
+      if(!t) return { success:false, message:`I couldn't find a task matching "${arg}", so nothing was changed.` };
+      t.done = true; saveState(); renderTasks();
+      return { success:true, label:'Task completed' };
+    }
+    case 'delete_task': {
+      const t = findTaskByText(arg);
+      if(!t) return { success:false, message:`I couldn't find a task matching "${arg}", so nothing was deleted.` };
+      deleteTaskById(t.id);
+      return { success:true, label:'Task deleted' };
+    }
+    case 'clear_tasks': {
+      if(state.tasks.length === 0) return { success:false, message:"There are no tasks to clear." };
+      state.tasks = []; saveState(); renderTasks();
+      return { success:true, label:'Tasks cleared' };
+    }
+    case 'create_note': {
+      addNoteWithText(arg);
+      return { success:true, label:'Note added' };
+    }
+    case 'delete_note': {
+      const n = findNoteByText(arg);
+      if(!n) return { success:false, message:`I couldn't find a note matching "${arg}", so nothing was deleted.` };
+      deleteNoteById(n.id);
+      return { success:true, label:'Note deleted' };
+    }
+    case 'remember': {
+      if(!arg) return { success:false, message:"What would you like me to remember?" };
+      state.memories.push({ id:uid(), text:arg, createdAt:Date.now() });
+      saveState(); renderMemoryList();
+      return { success:true, label:'Memory saved' };
+    }
+    case 'forget': {
+      const m = state.memories.find(m=>m.text.toLowerCase().includes(arg.toLowerCase()));
+      if(!m) return { success:false, message:`I don't have a memory matching "${arg}".` };
+      state.memories = state.memories.filter(x=>x.id!==m.id);
+      saveState(); renderMemoryList();
+      return { success:true, label:'Memory removed' };
+    }
+    case 'open_website':
+    case 'open_application': {
+      const app = findApp(arg);
+      if(!app){ return { success:false, message:`I don't have a shortcut for "${arg}" in Quick Apps.` }; }
+      openApp(app);
+      return { success:true, label:`Opened ${app.name}` };
+    }
+    default:
+      return { success:false, message:"I tried to take an action but didn't recognize it, so I didn't change anything." };
+  }
+}
+
+/* =========================================================
+   3. CONVERSATIONS (short-term / session memory)
+   ========================================================= */
+function ensureActiveConversation(){
+  if(state.conversations.length === 0){
+    createConversation(false);
+  }
+  if(!state.conversations.find(c=>c.id===state.activeConversationId)){
+    state.activeConversationId = state.conversations[0].id;
+  }
+}
+function getActiveConversation(){
+  return state.conversations.find(c=>c.id===state.activeConversationId);
+}
+function createConversation(render=true){
+  const convo = {
+    id: uid(),
+    title: 'New conversation',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    messages: [ { role:'ai', text:'Hello. I am NOVA. How can I help?', ts:Date.now() } ],
+  };
+  state.conversations.unshift(convo);
+  state.activeConversationId = convo.id;
+  saveState();
+  if(render){ renderConversationSidebar(); renderConversationMessages(); }
+  logActivity('New conversation started');
+  return convo;
+}
+function deriveTitle(text){
+  const cleaned = text.trim().replace(/\s+/g,' ');
+  const t = cleaned.length > 32 ? cleaned.slice(0,32).trim()+'…' : cleaned;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+function groupLabelFor(ts){
+  const d = new Date(ts), now = new Date();
+  const startOfDay = date => new Date(date.getFullYear(),date.getMonth(),date.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(now)-startOfDay(d))/86400000);
+  if(diffDays<=0) return 'Today';
+  if(diffDays===1) return 'Yesterday';
+  return 'Older';
+}
+function renderConversationSidebar(filter=''){
+  ensureActiveConversation();
+  const scroll = document.getElementById('convoScroll');
+  const q = filter.trim().toLowerCase();
+  const sorted = [...state.conversations].sort((a,b)=>b.updatedAt-a.updatedAt);
+  const filtered = q ? sorted.filter(c=>c.title.toLowerCase().includes(q)) : sorted;
+  const groups = { Today:[], Yesterday:[], Older:[] };
+  filtered.forEach(c=> groups[groupLabelFor(c.updatedAt)].push(c));
+
+  let html = '';
+  ['Today','Yesterday','Older'].forEach(label=>{
+    if(groups[label].length === 0) return;
+    html += `<div><div class="convo-group-label">${label}</div>`;
+    groups[label].forEach(c=>{
+      html += `
+        <div class="convo-item ${c.id===state.activeConversationId?'active':''}" data-id="${c.id}">
+          <span class="convo-item-title">${escapeHtml(c.title)}</span>
+          <span class="convo-actions">
+            <span class="convo-icon-btn" data-action="rename" data-id="${c.id}">✎</span>
+            <span class="convo-icon-btn" data-action="delete" data-id="${c.id}">✕</span>
+          </span>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+  if(filtered.length === 0){
+    html = `<div class="empty-state">No conversations found.</div>`;
+  }
+  scroll.innerHTML = html;
+
+  scroll.querySelectorAll('.convo-item').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      if(e.target.closest('.convo-icon-btn')) return;
+      state.activeConversationId = el.dataset.id;
+      saveState();
+      renderConversationSidebar(document.getElementById('convoSearch').value);
+      renderConversationMessages();
+    });
+  });
+  scroll.querySelectorAll('[data-action="rename"]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const c = state.conversations.find(c=>c.id===el.dataset.id);
+      const name = prompt('Rename conversation:', c.title);
+      if(name && name.trim()){
+        c.title = name.trim();
+        saveState();
+        renderConversationSidebar(document.getElementById('convoSearch').value);
+        renderConversationMessages();
+      }
+    });
+  });
+  scroll.querySelectorAll('[data-action="delete"]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(!confirm('Delete this conversation? This cannot be undone.')) return;
+      state.conversations = state.conversations.filter(c=>c.id!==el.dataset.id);
+      if(state.conversations.length === 0) createConversation(false);
+      else if(state.activeConversationId === el.dataset.id) state.activeConversationId = state.conversations[0].id;
+      saveState();
+      renderConversationSidebar(document.getElementById('convoSearch').value);
+      renderConversationMessages();
+    });
+  });
+}
+function renderConversationMessages(){
+  const convo = getActiveConversation();
+  if(!convo) return;
+  document.getElementById('convoTitleFull').textContent = convo.title;
+  ['chatBox','chatBoxFull'].forEach(boxId=>{
+    const box = document.getElementById(boxId);
+    box.innerHTML = '';
+    convo.messages.forEach(m=>{
+      const el = document.createElement('div');
+      el.className = `msg ${m.role==='ai' ? 'ai' : 'user'}`;
+      el.textContent = m.text;
+      box.appendChild(el);
+    });
+    box.scrollTop = box.scrollHeight;
+  });
+}
+document.getElementById('newConvoBtn').addEventListener('click', ()=> createConversation());
+document.getElementById('convoSearch').addEventListener('input', e=> renderConversationSidebar(e.target.value));
+document.getElementById('clearConvoBtn').addEventListener('click', ()=>{
+  const convo = getActiveConversation();
+  if(!convo) return;
+  if(!confirm('Clear all messages in this conversation?')) return;
+  convo.messages = [ { role:'ai', text:'Conversation cleared. How can I help?', ts:Date.now() } ];
+  convo.updatedAt = Date.now();
+  saveState();
+  renderConversationMessages();
+});
+
+/* =========================================================
+   4. LONG-TERM MEMORY
+   ========================================================= */
+function renderMemoryList(){
+  const list = document.getElementById('memoryList');
+  if(state.memories.length === 0){
+    list.innerHTML = `<div class="empty-state">No saved memories yet. Add one, or tell NOVA "remember that..."</div>`;
+    return;
+  }
+  list.innerHTML = state.memories.map(m=>`
+    <div class="memory-item" data-id="${m.id}">
+      <span class="memory-text">${escapeHtml(m.text)}</span>
+      <span class="task-del" data-action="deleteMemory" data-id="${m.id}">✕</span>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-action="deleteMemory"]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.memories = state.memories.filter(m=>m.id!==el.dataset.id);
+      saveState(); renderMemoryList();
+    });
+  });
+}
+document.getElementById('memoryAddBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('memoryInput');
+  if(!input.value.trim()) return;
+  state.memories.push({ id:uid(), text:input.value.trim(), createdAt:Date.now() });
+  saveState(); renderMemoryList();
+  input.value='';
+});
+document.getElementById('memoryClearBtn').addEventListener('click', ()=>{
+  if(state.memories.length===0) return;
+  if(!confirm('Delete all saved memories?')) return;
+  state.memories = [];
+  saveState(); renderMemoryList();
+});
+
+/* =========================================================
+   5. AI SERVICE LAYER
+   This is the only place that talks to the model. Swapping
+   providers means editing sendToAI() — the rest of the app
+   never needs to change.
+   ========================================================= */
+function buildContextBlock(){
+  const now = new Date();
+  const openTasks = state.tasks.filter(t=>!t.done).length;
+  return [
+    `Current time: ${tools.get_time()}`,
+    `Current date: ${tools.get_date()}`,
+    `Weather (simulated): ${tools.get_weather()}`,
+    `System stats (simulated): ${tools.get_system_stats()}`,
+    `Tasks (${state.tasks.length} total, ${openTasks} open): ${tools.list_tasks()}`,
+    `Notes (${state.notes.length} total): ${tools.read_notes()}`,
+    `Saved long-term memories about the user: ${state.memories.length ? state.memories.map(m=>m.text).join('; ') : 'none yet'}`,
+    `User preference — concise replies: ${state.settings.concise ? 'yes, keep answers short by default' : 'no particular preference'}`,
+    `Automatic memory setting: ${state.settings.autoMemory ? 'enabled — you may proactively remember clearly useful, non-sensitive facts the user shares' : 'disabled — only save a memory if the user explicitly asks you to remember something'}`,
+  ].join('\n');
+}
+function buildSystemPrompt(){
+  return `You are NOVA, a personal AI assistant embedded in a futuristic operating-system-style dashboard. Your personality is intelligent, calm, helpful, confident, slightly futuristic, and natural — never robotic or scripted. Be concise by default; give more detail when the user asks for it or the topic warrants it.
+
+You must never claim to have performed an action you have not actually performed, and never claim access to systems, files, the internet, or live data that you do not actually have. You do NOT have live web search or browsing access in this build — if asked to search the web or for something that requires live internet data you don't have, say so plainly instead of guessing or pretending.
+
+You are given fresh context data on every turn (current time/date, simulated weather, simulated system stats, the user's real tasks and notes, and saved long-term memories). Use this data directly to answer questions like "what are my tasks" or "what time is it" — you do not need to ask permission to read it, it's already provided below.
+
+You can take real actions in the app by outputting exactly one ACTION line as the very first line of your reply, in this exact format:
+ACTION: <action_name> | <argument>
+
+Valid action_names: create_task, complete_task, delete_task, clear_tasks, create_note, delete_note, remember, forget, open_website, open_application.
+
+After the ACTION line (if any), write your normal conversational reply on the next line(s), phrased naturally and assuming the action succeeds (the app will silently correct your message if it actually fails). If no action is needed, do not output an ACTION line at all — just reply normally, in plain conversational text.
+
+Only take an action when the user's message actually asks for one. Never invent facts about the user's tasks, notes or memory beyond what's given in the context below.
+
+--- LIVE CONTEXT ---
+${buildContextBlock()}
+--- END CONTEXT ---`;
+}
+function parseActionFromText(text){
+  const lines = text.split('\n');
+  const first = (lines[0]||'').trim();
+  const match = first.match(/^ACTION:\s*([a-z_]+)\s*\|\s*(.*)$/i);
+  if(match){
+    const rest = lines.slice(1).join('\n').trim();
+    return { actionName: match[1].toLowerCase(), actionArg: match[2].trim(), replyText: rest || 'Done.' };
+  }
+  return { actionName:null, actionArg:null, replyText:text.trim() };
+}
+
+/* ---------- Provider defaults for the "bring your own account" option ---------- */
+const PROVIDER_DEFAULTS = {
+  anthropic: { model:'claude-3-5-sonnet-latest', endpoint:'https://api.anthropic.com/v1/messages' },
+  openai:    { model:'gpt-4o', endpoint:'https://api.openai.com/v1/chat/completions' },
+  custom:    { model:'', endpoint:'' },
+};
+function providerLabelFor(p){
+  return p==='anthropic' ? 'Anthropic' : p==='openai' ? 'OpenAI' : 'Custom';
+}
+async function safeReadError(response){
+  try{
+    const j = await response.json();
+    return (j.error && (j.error.message || j.error)) || JSON.stringify(j).slice(0,150);
+  }catch(e){ return ''; }
+}
+
+/* Sends a request directly from the browser to the user's own account.
+   This is a real network call using the key they entered in Settings —
+   nothing here is simulated. If the provider blocks browser-origin
+   requests (CORS) or the key/model is wrong, it throws, and the caller
+   falls back to the built-in connection rather than pretending. */
+async function sendViaCustomAccount(conversationMessages, custom){
+  const systemPrompt = buildSystemPrompt();
+  const recent = conversationMessages.slice(-16);
+
+  if(custom.provider === 'anthropic'){
+    const anthropicMsgs = recent.map(m => ({ role: m.role==='ai' ? 'assistant' : 'user', content: m.text }));
+    const response = await fetch(custom.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': custom.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({ model: custom.model, max_tokens: 700, system: systemPrompt, messages: anthropicMsgs }),
+    });
+    if(!response.ok){
+      const errDetail = await safeReadError(response);
+      throw new Error(`HTTP ${response.status}${errDetail ? ': ' + errDetail : ''}`);
+    }
+    const data = await response.json();
+    const text = (data.content || []).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+    if(!text) throw new Error('empty response from provider');
+    return parseActionFromText(text);
+  }
+
+  // OpenAI and "custom" (OpenAI-compatible) providers share a chat-completions shape.
+  const oaMsgs = [
+    { role:'system', content: systemPrompt },
+    ...recent.map(m => ({ role: m.role==='ai' ? 'assistant' : 'user', content: m.text })),
+  ];
+  const response = await fetch(custom.endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${custom.apiKey}` },
+    body: JSON.stringify({ model: custom.model, messages: oaMsgs, max_tokens: 700 }),
+  });
+  if(!response.ok){
+    const errDetail = await safeReadError(response);
+    throw new Error(`HTTP ${response.status}${errDetail ? ': ' + errDetail : ''}`);
+  }
+  const data = await response.json();
+  const text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || '').trim();
+  if(!text) throw new Error('empty response from provider');
+  return parseActionFromText(text);
+}
+
+const aiService = {
+  async sendToAI(conversationMessages){
+    const custom = state.settings.customAI;
+
+    if(custom && custom.enabled && custom.apiKey && custom.model && custom.endpoint){
+      try{
+        const parsed = await sendViaCustomAccount(conversationMessages, custom);
+        return { ...parsed, source:'custom', providerLabel: providerLabelFor(custom.provider) };
+      }catch(err){
+        console.warn('NOVA: your account request failed, falling back to the built-in connection.', err);
+        appendSystemNoticeBoth(`Your ${providerLabelFor(custom.provider)} account request failed (${err.message || 'request error'}). Falling back to the built-in connection.`);
+        // fall through to the built-in path below
+      }
+    }
+
+    try{
+      const systemPrompt = buildSystemPrompt();
+      const msgs = conversationMessages
+        .slice(-16)
+        .map(m => ({ role: m.role==='ai' ? 'assistant' : 'user', content: m.text }));
+
+      const response = await fetch(AI_CONFIG.API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: AI_CONFIG.AI_MODEL,
+          max_tokens: 700,
+          system: systemPrompt,
+          messages: msgs,
+        }),
+      });
+      if(!response.ok) throw new Error('AI request failed with status ' + response.status);
+      const data = await response.json();
+      const fullText = (data.content || [])
+        .filter(block => block.type === 'text')
+        .map(block => block.text)
+        .join('\n')
+        .trim();
+      if(!fullText) throw new Error('Empty AI response');
+      return { ...parseActionFromText(fullText), source:'builtin' };
+    }catch(err){
+      console.warn('NOVA: live AI call failed, falling back to demo engine.', err);
+      return null; // signals caller to use the local demo engine instead
+    }
+  },
+};
+
+/* ---------- AI status badge ---------- */
+function setAiBadge(mode, providerLabel){
+  let label, isDemo;
+  if(mode === 'custom'){ label = `${providerLabel} Connected`; isDemo = false; }
+  else if(mode === 'builtin'){ label = 'AI Connected'; isDemo = false; }
+  else { label = 'Demo Mode'; isDemo = true; }
+
+  [document.getElementById('aiBadgeHome'), document.getElementById('aiBadgeFull')].forEach(el=>{
+    if(!el) return;
+    el.textContent = label;
+    el.classList.toggle('demo', isDemo);
+  });
+  const engineTagText = isDemo ? 'DEMO' : 'READY';
+  [document.getElementById('aiEngineTag'), document.getElementById('aiEngineTagSystem')].forEach(el=>{
+    if(!el) return;
+    el.textContent = engineTagText;
+    el.classList.remove('tag-good','tag-warn');
+    el.classList.add(isDemo ? 'tag-warn' : 'tag-good');
+  });
+}
+
+/* =========================================================
+   6. DEMO-MODE FALLBACK ENGINE
+   A safe, transparent, fully local rule-based responder used
+   whenever the live AI call is unavailable, or when the user
+   forces demo mode in Settings. Clearly labeled in the UI via
+   the badge above — never presented as if it were the model.
+   ========================================================= */
+let pendingClearConfirm = false;
+function demoEngine(raw){
+  const cmd = raw.trim().toLowerCase();
+
+  if(pendingClearConfirm){
+    pendingClearConfirm = false;
+    if(cmd === 'yes' || cmd === 'confirm' || cmd === 'y'){
+      const res = executeAction('clear_tasks','');
+      return res.success ? 'All tasks cleared.' : res.message;
+    }
+    return 'Cancelled. Your tasks were not changed.';
+  }
+
+  if(/^hello|^hi\b|^hey/.test(cmd)) return "Hello — I'm running in demo mode right now, with a limited set of local commands. Try \"help\" to see what I can do.";
+  if(cmd.includes('what time')) return `The current time is ${tools.get_time()}.`;
+  if(cmd.includes('what day') || cmd.includes('what date')) return `Today is ${tools.get_date()}.`;
+  if(cmd.includes('show my tasks') || cmd==='tasks' || cmd.includes('show tasks')) return state.tasks.length ? `You have ${state.tasks.length} tasks: ${tools.list_tasks()}` : 'You have no tasks right now.';
+  if(cmd.includes('show my notes') || cmd==='notes' || cmd.includes('show notes')) return state.notes.length ? `You have ${state.notes.length} notes: ${tools.read_notes()}` : 'You have no notes yet.';
+  if(cmd.includes('clear tasks')){
+    if(state.tasks.length===0) return 'There are no tasks to clear.';
+    pendingClearConfirm = true;
+    return `This will permanently delete all ${state.tasks.length} tasks. Type "yes" to confirm, or anything else to cancel.`;
+  }
+  if(cmd.startsWith('create task') || cmd.startsWith('add task')){
+    const text = raw.replace(/create task|add task/i,'').replace(/^[:\s-]+/,'').trim();
+    if(!text) return 'What should the task be called?';
+    executeAction('create_task', text);
+    return `Done — I've added "${text}" to your tasks.`;
+  }
+  if(cmd.includes('open apps') || cmd==='apps'){ goToView('apps'); return 'Opening Apps.'; }
+  if(cmd.startsWith('open ')){
+    const target = cmd.replace('open ','').trim();
+    const res = executeAction('open_website', target);
+    return res.success ? `Opening ${target}.` : res.message;
+  }
+  if(cmd.includes('system status') || cmd==='status') return `System status — ${tools.get_system_stats()}. Core: ONLINE.`;
+  if(cmd.includes("i'm bored") || cmd.includes('im bored')) return 'A few ideas: knock out one item from your task list, start a new note to capture what\'s on your mind, or queue up something in Music. Want me to open your tasks?';
+  if(cmd === 'help') return 'In demo mode I can handle: hello, what time is it, what day is it, show my tasks, create task <name>, clear tasks, show my notes, open <app>, system status. Reconnect the live AI in Settings for full natural conversation.';
+  return "I'm in demo mode right now, so my understanding is limited to a few local commands. Type \"help\" to see them, or check Settings to make sure live AI isn't disabled.";
+}
+
+/* =========================================================
+   7. UNIFIED SEND PIPELINE
+   Both the Home mini-chat and the full Assistant view funnel
+   through this single function so they always share one
+   conversation and one source of truth.
+   ========================================================= */
+function appendTyping(containerId){
+  const box = document.getElementById(containerId);
+  const msg = document.createElement('div');
+  msg.className = 'msg ai typing';
+  msg.id = containerId+'-typing';
+  msg.innerHTML = `<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>`;
+  box.appendChild(msg);
+  box.scrollTop = box.scrollHeight;
+}
+function removeTyping(containerId){
+  const el = document.getElementById(containerId+'-typing');
+  if(el) el.remove();
+}
+function showTypingBoth(){ appendTyping('chatBox'); appendTyping('chatBoxFull'); }
+function hideTypingBoth(){ removeTyping('chatBox'); removeTyping('chatBoxFull'); }
+
+function appendSystemNoticeBoth(text){
+  ['chatBox','chatBoxFull'].forEach(id=>{
+    const box = document.getElementById(id);
+    if(!box) return;
+    const el = document.createElement('div');
+    el.className = 'msg system-note';
+    el.textContent = text;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  });
+}
+
+/* =========================================================
+   8. VOICE OUTPUT — speak NOVA's replies aloud
+   Uses the browser's built-in speechSynthesis API. No keys,
+   no external service. Silently does nothing if unsupported.
+   ========================================================= */
+function speakText(text){
+  if(!state.settings.voiceReplies) return;
+  if(!('speechSynthesis' in window)) return;
+  try{
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.02;
+    utter.pitch = 0.95;
+    window.speechSynthesis.speak(utter);
+  }catch(e){ console.warn('NOVA: speech synthesis unavailable', e); }
+}
+
+/* =========================================================
+   9. VOICE INPUT — speak to NOVA, and to launch apps
+   Uses the browser's built-in SpeechRecognition API (Chrome /
+   Edge desktop support it; Firefox and some mobile browsers
+   do not). Feature-detected — if it's missing or the browser
+   blocks the microphone, NOVA says so plainly rather than
+   silently failing or pretending to have heard something.
+   ========================================================= */
+const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+const voiceInputSupported = !!SpeechRecognitionImpl;
+let activeRecognition = null;
+let activeMicBtnId = null;
+
+function setMicListening(micBtnId, listening){
+  const btn = document.getElementById(micBtnId);
+  if(!btn) return;
+  btn.classList.toggle('listening', listening);
+  btn.textContent = listening ? '⏺' : '🎤';
+}
+
+function stopVoiceInput(){
+  if(activeRecognition){
+    try{ activeRecognition.stop(); }catch(e){}
+  }
+}
+
+function startVoiceInput(inputId, micBtnId){
+  if(!voiceInputSupported){
+    appendSystemNoticeBoth("Voice input isn't supported in this browser. Try Chrome or Edge on desktop.");
+    return;
+  }
+  if(activeRecognition){
+    // Clicking the active mic again stops listening early.
+    try{ activeRecognition.stop(); }catch(e){}
+    return;
+  }
+
+  const recognition = new SpeechRecognitionImpl();
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  const input = document.getElementById(inputId);
+  const originalPlaceholder = input.placeholder;
+  input.placeholder = 'Listening…';
+  input.value = '';
+
+  let finalTranscript = '';
+  activeRecognition = recognition;
+  activeMicBtnId = micBtnId;
+  setMicListening(micBtnId, true);
+
+  recognition.onresult = (event)=>{
+    let interim = '';
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      const transcript = event.results[i][0].transcript;
+      if(event.results[i].isFinal) finalTranscript += transcript;
+      else interim += transcript;
+    }
+    input.value = (finalTranscript + interim).trim();
+  };
+
+  recognition.onerror = (event)=>{
+    if(event.error === 'not-allowed' || event.error === 'permission-denied' || event.error === 'service-not-allowed'){
+      appendSystemNoticeBoth('Microphone access was blocked. Allow microphone permission for this page to use voice input.');
+    } else if(event.error !== 'no-speech' && event.error !== 'aborted'){
+      appendSystemNoticeBoth('Voice input error: ' + event.error);
+    }
+  };
+
+  recognition.onend = ()=>{
+    setMicListening(micBtnId, false);
+    input.placeholder = originalPlaceholder;
+    const spoken = finalTranscript.trim() || input.value.trim();
+    input.value = '';
+    activeRecognition = null;
+    activeMicBtnId = null;
+    if(spoken) sendUserMessage(spoken);
+  };
+
+  try{
+    recognition.start();
+  }catch(e){
+    setMicListening(micBtnId, false);
+    input.placeholder = originalPlaceholder;
+    activeRecognition = null;
+    appendSystemNoticeBoth("Couldn't start voice input: " + e.message);
+  }
+}
+
+function wireMic(micBtnId, inputId){
+  const btn = document.getElementById(micBtnId);
+  if(!voiceInputSupported){
+    btn.disabled = true;
+    btn.title = 'Voice input is not supported in this browser';
+  }
+  btn.addEventListener('click', ()=> startVoiceInput(inputId, micBtnId));
+}
+wireMic('micBtnHome','chatInput');
+wireMic('micBtnFull','chatInputFull');
+
+let sendInFlight = false;
+async function sendUserMessage(text){
+  if(!text || !text.trim() || sendInFlight) return;
+  sendInFlight = true;
+  setSendButtonsDisabled(true);
+
+  ensureActiveConversation();
+  const convo = getActiveConversation();
+  const isFirstUserMessage = !convo.messages.some(m=>m.role==='user');
+  convo.messages.push({ role:'user', text: text.trim(), ts: Date.now() });
+  if(isFirstUserMessage) convo.title = deriveTitle(text);
+  convo.updatedAt = Date.now();
+  saveState();
+  renderConversationMessages();
+  renderConversationSidebar(document.getElementById('convoSearch').value);
+  logActivity('Assistant command received');
+
+  showTypingBoth();
+
+  let aiResult = null;
+  if(state.settings.aiMode !== 'demo'){
+    aiResult = await aiService.sendToAI(convo.messages);
+  }
+
+  hideTypingBoth();
+
+  let displayText;
+  if(aiResult){
+    setAiBadge(aiResult.source === 'custom' ? 'custom' : 'builtin', aiResult.providerLabel);
+    if(aiResult.actionName){
+      const result = executeAction(aiResult.actionName, aiResult.actionArg);
+      displayText = result.success ? aiResult.replyText : result.message;
+      if(result.success && result.label) logActivity(result.label);
+    } else {
+      displayText = aiResult.replyText;
+    }
+  } else {
+    setAiBadge('demo');
+    displayText = demoEngine(text);
+  }
+
+  convo.messages.push({ role:'ai', text: displayText, ts: Date.now() });
+  convo.updatedAt = Date.now();
+  saveState();
+  renderConversationMessages();
+  renderConversationSidebar(document.getElementById('convoSearch').value);
+  speakText(displayText);
+
+  sendInFlight = false;
+  setSendButtonsDisabled(false);
+}
+function setSendButtonsDisabled(disabled){
+  ['chatSend','chatSendFull'].forEach(id=>{
+    const btn = document.getElementById(id);
+    if(btn) btn.disabled = disabled;
+  });
+}
+function wireChat(inputId, sendId){
+  const input = document.getElementById(inputId);
+  const send = document.getElementById(sendId);
+  send.addEventListener('click', ()=>{ const v = input.value; input.value=''; sendUserMessage(v); });
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ const v = input.value; input.value=''; sendUserMessage(v); } });
+}
+wireChat('chatInput','chatSend');
+wireChat('chatInputFull','chatSendFull');
+
+/* ---------- Settings ---------- */
+const ACCENTS = [
+  { key:'cyan', color:'#4fd7ff' },
+  { key:'violet', color:'#b98bff' },
+  { key:'emerald', color:'#4fe0a0' },
+  { key:'amber', color:'#ffb84f' },
+  { key:'rose', color:'#ff7ea6' },
+];
+/* ---------- Bring-your-own AI account ---------- */
+function renderByoSettings(){
+  const c = state.settings.customAI;
+  document.getElementById('byoProvider').value = c.provider;
+  document.getElementById('byoApiKey').value = c.apiKey || '';
+  document.getElementById('byoModel').value = c.model || '';
+  document.getElementById('byoEndpoint').value = c.endpoint || '';
+  const enableToggle = document.getElementById('byoEnableToggle');
+  enableToggle.classList.toggle('on', c.enabled);
+  document.getElementById('byoStatusNote').textContent = c.enabled
+    ? `On — using your ${providerLabelFor(c.provider)} account (model: ${c.model || 'not set'})`
+    : "Off — NOVA is using the built-in demo/Anthropic connection";
+}
+function wireByoSettings(){
+  document.getElementById('byoProvider').addEventListener('change', (e)=>{
+    const provider = e.target.value;
+    state.settings.customAI.provider = provider;
+    const defaults = PROVIDER_DEFAULTS[provider];
+    if(!state.settings.customAI.model) state.settings.customAI.model = defaults.model;
+    if(!state.settings.customAI.endpoint) state.settings.customAI.endpoint = defaults.endpoint;
+    saveState(); renderByoSettings();
+  });
+  document.getElementById('byoApiKey').addEventListener('input', e=>{ state.settings.customAI.apiKey = e.target.value; saveState(); });
+  document.getElementById('byoModel').addEventListener('input', e=>{ state.settings.customAI.model = e.target.value; saveState(); });
+  document.getElementById('byoEndpoint').addEventListener('input', e=>{ state.settings.customAI.endpoint = e.target.value; saveState(); });
+  document.getElementById('byoToggleShow').addEventListener('click', ()=>{
+    const input = document.getElementById('byoApiKey');
+    const btn = document.getElementById('byoToggleShow');
+    if(input.type === 'password'){ input.type = 'text'; btn.textContent = 'Hide'; }
+    else { input.type = 'password'; btn.textContent = 'Show'; }
+  });
+  document.getElementById('byoEnableToggle').addEventListener('click', ()=>{
+    const c = state.settings.customAI;
+    if(!c.enabled){
+      if(!c.apiKey || !c.apiKey.trim()){ appendSystemNoticeBoth('Add your API key before enabling your own account.'); return; }
+      if(!c.model || !c.model.trim()){ appendSystemNoticeBoth('Set a model name before enabling your own account.'); return; }
+      if(!c.endpoint || !c.endpoint.trim()){ appendSystemNoticeBoth('Set an API endpoint before enabling your own account.'); return; }
+    }
+    c.enabled = !c.enabled;
+    saveState(); renderByoSettings();
+    logActivity(c.enabled ? `Connected personal ${providerLabelFor(c.provider)} account` : 'Disconnected personal AI account');
+  });
+  document.getElementById('byoSaveBtn').addEventListener('click', ()=>{
+    saveState();
+    const btn = document.getElementById('byoSaveBtn');
+    const old = btn.textContent;
+    btn.textContent = 'Saved ✓';
+    setTimeout(()=>{ btn.textContent = old; }, 1200);
+  });
+  document.getElementById('byoClearBtn').addEventListener('click', ()=>{
+    if(!confirm('Remove your saved API key from this browser?')) return;
+    state.settings.customAI = { enabled:false, provider: state.settings.customAI.provider, apiKey:'', model:'', endpoint:'' };
+    saveState(); renderByoSettings();
+  });
+}
+wireByoSettings();
+
+function renderSettings(){
+  const swatchWrap = document.getElementById('accentSwatches');
+  swatchWrap.innerHTML = ACCENTS.map(a => `
+    <div class="swatch ${state.settings.accent===a.key?'selected':''}" style="background:${a.color}" data-key="${a.key}"></div>
+  `).join('');
+  swatchWrap.querySelectorAll('.swatch').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.settings.accent = el.dataset.key;
+      saveState(); applySettings(); renderSettings();
+      logActivity('Accent color changed');
+    });
+  });
+
+  document.querySelectorAll('#clockFormatSeg .seg-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.val === state.settings.clockFormat);
+    btn.onclick = ()=>{
+      state.settings.clockFormat = btn.dataset.val;
+      saveState(); renderSettings(); updateClock();
+    };
+  });
+
+  const animToggle = document.getElementById('animToggle');
+  animToggle.classList.toggle('on', state.settings.animations);
+  animToggle.onclick = ()=>{ state.settings.animations = !state.settings.animations; saveState(); applySettings(); renderSettings(); };
+
+  const soundToggle = document.getElementById('soundToggle');
+  soundToggle.classList.toggle('on', state.settings.sound);
+  soundToggle.onclick = ()=>{ state.settings.sound = !state.settings.sound; saveState(); renderSettings(); };
+
+  const conciseToggle = document.getElementById('conciseToggle');
+  conciseToggle.classList.toggle('on', state.settings.concise);
+  conciseToggle.onclick = ()=>{ state.settings.concise = !state.settings.concise; saveState(); renderSettings(); };
+
+  const demoToggle = document.getElementById('demoModeToggle');
+  demoToggle.classList.toggle('on', state.settings.aiMode === 'demo');
+  demoToggle.onclick = ()=>{
+    state.settings.aiMode = state.settings.aiMode === 'demo' ? 'auto' : 'demo';
+    saveState(); renderSettings();
+    if(state.settings.aiMode === 'demo') setAiBadge('demo');
+    logActivity(state.settings.aiMode === 'demo' ? 'Demo mode forced on' : 'Live AI re-enabled');
+  };
+
+  const autoMemToggle = document.getElementById('autoMemoryToggle');
+  autoMemToggle.classList.toggle('on', state.settings.autoMemory);
+  autoMemToggle.onclick = ()=>{ state.settings.autoMemory = !state.settings.autoMemory; saveState(); renderSettings(); };
+
+  const voiceRepliesToggle = document.getElementById('voiceRepliesToggle');
+  const speechSupported = 'speechSynthesis' in window;
+  voiceRepliesToggle.classList.toggle('on', state.settings.voiceReplies);
+  voiceRepliesToggle.classList.toggle('disabled', !speechSupported);
+  voiceRepliesToggle.onclick = ()=>{
+    if(!speechSupported){ appendSystemNoticeBoth("Voice replies aren't supported in this browser."); return; }
+    state.settings.voiceReplies = !state.settings.voiceReplies;
+    saveState(); renderSettings();
+    if(!state.settings.voiceReplies) window.speechSynthesis.cancel();
+  };
+
+  const voiceTag = document.getElementById('voiceSupportTag');
+  const voiceNote = document.getElementById('voiceSupportNote');
+  if(voiceInputSupported){
+    voiceTag.textContent = 'AVAILABLE';
+    voiceTag.className = 'status-tag tag-good';
+    voiceNote.textContent = 'Tap the mic next to chat and speak — try "open youtube" or ask a question.';
+  } else {
+    voiceTag.textContent = 'UNAVAILABLE';
+    voiceTag.className = 'status-tag tag-warn';
+    voiceNote.textContent = 'Your browser doesn\'t support voice input. Try Chrome or Edge on desktop.';
+  }
+
+  document.getElementById('cfgProvider').textContent = AI_CONFIG.AI_PROVIDER;
+  document.getElementById('cfgModel').textContent = AI_CONFIG.AI_MODEL;
+  renderByoSettings();
+  document.getElementById('cfgEndpoint').textContent = AI_CONFIG.API_ENDPOINT;
+}
+document.getElementById('resetDataBtn').addEventListener('click', ()=>{
+  if(confirm('This will erase all tasks, notes, conversations, memory and settings. Continue?')){
+    localStorage.removeItem(STORE_KEY);
+    state = defaultState();
+    applySettings();
+    ensureActiveConversation();
+    renderTasks(); renderNotes(); renderSettings(); renderMemoryList();
+    renderConversationSidebar(); renderConversationMessages();
+    logActivity('All data reset');
+  }
+});
+renderSettings();
+
+/* ---------- Initial render ---------- */
+ensureActiveConversation();
+renderTasks();
+renderNotes();
+renderMemoryList();
+renderConversationSidebar();
+renderConversationMessages();
+logActivity('System initialized');
+setAiBadge('demo'); // starts pessimistic; first successful AI reply flips this to builtin/custom
+</script>
+</body>
+</html>
